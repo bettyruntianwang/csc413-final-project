@@ -80,15 +80,15 @@ print('### Training epoch: {0}'.format(TRAINING_EPOCHES))
 TRAINING_FILE_LIST = os.path.join(hdf5_data_dir, 'train_hdf5_file_list.txt')
 TESTING_FILE_LIST = os.path.join(hdf5_data_dir, 'val_hdf5_file_list.txt')
 
-MODEL_STORAGE_PATH = os.path.join(output_dir, 'trained_models')
+MODEL_STORAGE_PATH = os.path.join(output_dir, 'trained_models_pi_loss_orig_data')
 if not os.path.exists(MODEL_STORAGE_PATH):
   os.mkdir(MODEL_STORAGE_PATH)
 
-LOG_STORAGE_PATH = os.path.join(output_dir, 'logs')
+LOG_STORAGE_PATH = os.path.join(output_dir, 'logs_pi_loss_orig_data')
 if not os.path.exists(LOG_STORAGE_PATH):
   os.mkdir(LOG_STORAGE_PATH)
 
-SUMMARIES_FOLDER =  os.path.join(output_dir, 'summaries')
+SUMMARIES_FOLDER =  os.path.join(output_dir, 'summaries_pi_loss_orig_data')
 if not os.path.exists(SUMMARIES_FOLDER):
   os.mkdir(SUMMARIES_FOLDER)
 
@@ -221,6 +221,7 @@ def train():
 
             tower_grads.append(grads)
 
+    #Betty: tower_grads is empty
     grads = average_gradients(tower_grads)
 
     train_op = trainer.apply_gradients(grads, global_step=batch)

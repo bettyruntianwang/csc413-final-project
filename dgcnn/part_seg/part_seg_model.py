@@ -134,6 +134,8 @@ def get_permutation_invariant_loss(pred_labels, true_labels):
   # pred_labels: batch_size x point_num x part_num
   # true_labels: batch_size x point_num
 
+  sess = tf.InteractiveSession()
+
   min_parts = tf.reduce_min(true_labels, axis=1, keepdims=True)
   true_labels = true_labels - min_parts # batch_size x point_num
   part_counts = tf.reduce_max(true_labels, axis=1) + 1 # batch_size
@@ -144,15 +146,16 @@ def get_permutation_invariant_loss(pred_labels, true_labels):
   permuted_labels = []
 
   for i in range(batch_num):
-    perm_count = math.factorial(part_counts[i])
+    perm_base = sess.run(part_counts[i])
+    perm_count = math.factorial(perm_base)
     pred_l = tf.repeat(tf.expand_dims(pred_labels[i], axis=0), repeats=perm_count, axis=0)  # perm_num x point_num x part_num
-    true_l = np.zeros([perm_count, point_num])                                              # perm_num x point_num
+    true_l = np.zeros([perm_count, point_num])            
+    part_index_permutations = np.array([list(perm) for perm in permutations(range(perm_base))])
 
-    part_index_permutations = tf.constant(list(permutations(range(part_counts[i]))))
-
-    for part_index in range(part_counts[i]):
-      label_mask = tf.reshape(tf.where(true_labels[i] == part_index), [-1])
-      true_l[:, label_mask] = np.repeat(np.expand_dims(part_index_permutations[:, part_index], axis=1), repeats=label_mask.shape[0], axis=1)
+    for part_index in range(perm_base):
+      np_true_labels = sess.run(true_labels)
+      label_mask = tf.reshape(tf.where(np_true_labels[i] == part_index), [-1])
+      true_l[:,sess.run(label_mask)] = np.repeat(np.expand_dims(part_index_permutations[:,part_index], axis=1), repeats=sess.run(tf.shape(label_mask))[0], axis=1)
     true_l = tf.convert_to_tensor(true_l, dtype=tf.int64)
 
     ce_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred_l, labels=true_l)
