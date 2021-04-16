@@ -133,7 +133,7 @@ def train():
 
     batch = tf.Variable(0, trainable=False)
     
-    learning_rate = tf.train.exponential_decay(
+    learning_rate = tf.compat.v1.train.exponential_decay(
             BASE_LEARNING_RATE,     # base learning rate
             batch * batch_size,     # global_var indicating the number of steps
             DECAY_STEP,             # step size
@@ -142,7 +142,7 @@ def train():
             )
     learning_rate = tf.maximum(learning_rate, LEARNING_RATE_CLIP)
   
-    bn_momentum = tf.train.exponential_decay(
+    bn_momentum =tf.compat.v1.train.exponential_decay(
           BN_INIT_DECAY,
           batch*batch_size,
           BN_DECAY_DECAY_STEP,
@@ -150,11 +150,11 @@ def train():
           staircase=True)
     bn_decay = tf.minimum(BN_DECAY_CLIP, 1 - bn_momentum)
 
-    lr_op = tf.summary.scalar('learning_rate', learning_rate)
-    batch_op = tf.summary.scalar('batch_number', batch)
-    bn_decay_op = tf.summary.scalar('bn_decay', bn_decay)
+    lr_op = tf.compat.v1.summary.scalar('learning_rate', learning_rate)
+    batch_op = tf.compat.v1.summary.scalar('batch_number', batch)
+    bn_decay_op = tf.compat.v1.summary.scalar('bn_decay', bn_decay)
 
-    trainer = tf.train.AdamOptimizer(learning_rate)
+    trainer = tf.compat.v1.train.AdamOptimizer(learning_rate)
 
     # store tensors for different gpus
     tower_grads = []
@@ -163,14 +163,14 @@ def train():
     seg_phs =[]
     is_training_phs =[]
 
-    with tf.variable_scope(tf.get_variable_scope()):
+    with tf.compat.v1.variable_scope(tf.get_variable_scope()):
       for i in range(FLAGS.num_gpu):
         with tf.device('/gpu:%d' % i):
           with tf.name_scope('%s_%d' % (TOWER_NAME, i)) as scope:
-            pointclouds_phs.append(tf.placeholder(tf.float32, shape=(batch_size, point_num, 3))) # for points
-            input_label_phs.append(tf.placeholder(tf.float32, shape=(batch_size, NUM_CATEGORIES))) # for one-hot category label
-            seg_phs.append(tf.placeholder(tf.int32, shape=(batch_size, point_num))) # for part labels
-            is_training_phs.append(tf.placeholder(tf.bool, shape=()))
+            pointclouds_phs.append(tf.compat.v1.placeholder(tf.float32, shape=(batch_size, point_num, 3))) # for points
+            input_label_phs.append(tf.compat.v1.placeholder(tf.float32, shape=(batch_size, NUM_CATEGORIES))) # for one-hot category label
+            seg_phs.append(tf.compat.v1.placeholder(tf.int32, shape=(batch_size, point_num))) # for part labels
+            is_training_phs.append(tf.compat.v1.placeholder(tf.bool, shape=()))
 
             seg_pred = model.get_model(pointclouds_phs[-1], input_label_phs[-1], \
                 is_training=is_training_phs[-1], bn_decay=bn_decay, cat_num=NUM_CATEGORIES, \
@@ -180,20 +180,20 @@ def train():
             loss, per_instance_seg_loss, per_instance_seg_pred_res  \
               = model.get_loss(seg_pred, seg_phs[-1])
 
-            total_training_loss_ph = tf.placeholder(tf.float32, shape=())
-            total_testing_loss_ph = tf.placeholder(tf.float32, shape=())
+            total_training_loss_ph = tf.compat.v1.placeholder(tf.float32, shape=())
+            total_testing_loss_ph = tf.compat.v1.placeholder(tf.float32, shape=())
 
-            seg_training_acc_ph = tf.placeholder(tf.float32, shape=())
-            seg_testing_acc_ph = tf.placeholder(tf.float32, shape=())
-            seg_testing_acc_avg_cat_ph = tf.placeholder(tf.float32, shape=())
+            seg_training_acc_ph = tf.compat.v1.placeholder(tf.float32, shape=())
+            seg_testing_acc_ph = tf.compat.v1.placeholder(tf.float32, shape=())
+            seg_testing_acc_avg_cat_ph = tf.compat.v1.placeholder(tf.float32, shape=())
 
-            total_train_loss_sum_op = tf.summary.scalar('total_training_loss', total_training_loss_ph)
-            total_test_loss_sum_op = tf.summary.scalar('total_testing_loss', total_testing_loss_ph)
+            total_train_loss_sum_op = tf.compat.v1.summary.scalar('total_training_loss', total_training_loss_ph)
+            total_test_loss_sum_op = tf.compat.v1.summary.scalar('total_testing_loss', total_testing_loss_ph)
 
         
-            seg_train_acc_sum_op = tf.summary.scalar('seg_training_acc', seg_training_acc_ph)
-            seg_test_acc_sum_op = tf.summary.scalar('seg_testing_acc', seg_testing_acc_ph)
-            seg_test_acc_avg_cat_op = tf.summary.scalar('seg_testing_acc_avg_cat', seg_testing_acc_avg_cat_ph)
+            seg_train_acc_sum_op = tf.compat.v1.summary.scalar('seg_training_acc', seg_training_acc_ph)
+            seg_test_acc_sum_op = tf.compat.v1.summary.scalar('seg_testing_acc', seg_testing_acc_ph)
+            seg_test_acc_avg_cat_op = tf.compat.v1.summary.scalar('seg_testing_acc_avg_cat', seg_testing_acc_avg_cat_ph)
 
             tf.get_variable_scope().reuse_variables()
 

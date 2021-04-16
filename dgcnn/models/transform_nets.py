@@ -39,13 +39,13 @@ def input_transform_net(edge_feature, is_training, bn_decay=None, K=3, is_dist=F
   net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training,
                   scope='tfc2', bn_decay=bn_decay,is_dist=is_dist)
 
-  with tf.variable_scope('transform_XYZ') as sc:
+  with tf.compat.v1.variable_scope('transform_XYZ') as sc:
     # assert(K==3)
     with tf.device('/cpu:0'):
-      weights = tf.get_variable('weights', [256, K*K],
+      weights = tf.compat.v1.get_variable('weights', [256, K*K],
                     initializer=tf.constant_initializer(0.0),
                     dtype=tf.float32)
-      biases = tf.get_variable('biases', [K*K],
+      biases = tf.compat.v1.get_variable('biases', [K*K],
                    initializer=tf.constant_initializer(0.0),
                    dtype=tf.float32)
     biases += tf.constant(np.eye(K).flatten(), dtype=tf.float32)

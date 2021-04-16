@@ -92,8 +92,8 @@ def pc_normalize(pc):
   return pc
 
 def placeholder_inputs():
-  pointclouds_ph = tf.placeholder(tf.float32, shape=(batch_size, point_num, 3))
-  input_label_ph = tf.placeholder(tf.float32, shape=(batch_size, NUM_OBJ_CATS))
+  pointclouds_ph = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, point_num, 3))
+  input_label_ph = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, NUM_OBJ_CATS))
   return pointclouds_ph, input_label_ph
 
 def output_color_point_cloud(data, seg, out_file):
@@ -179,7 +179,7 @@ def predict():
   
   with tf.device('/gpu:'+str(gpu_to_use)):
     pointclouds_ph, input_label_ph = placeholder_inputs()
-    is_training_ph = tf.placeholder(tf.bool, shape=())
+    is_training_ph = tf.compat.v1.placeholder(tf.bool, shape=())
 
     seg_pred = model.get_model(pointclouds_ph, input_label_ph, \
         cat_num=NUM_OBJ_CATS, part_num=NUM_PART_CATS, is_training=is_training_ph, \

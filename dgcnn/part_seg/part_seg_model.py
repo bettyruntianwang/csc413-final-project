@@ -25,7 +25,7 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
   nn_idx = tf_util.knn(adj, k=k)
   edge_feature = tf_util.get_edge_feature(input_image, nn_idx=nn_idx, k=k)
 
-  with tf.variable_scope('transform_net1') as sc:
+  with tf.compat.v1.variable_scope('transform_net1') as sc:
     transform = input_transform_net(edge_feature, is_training, bn_decay, K=3, is_dist=True)
   point_cloud_transformed = tf.matmul(point_cloud, transform)
   
@@ -36,13 +36,18 @@ def get_model(point_cloud, input_label, is_training, cat_num, part_num, \
 
   out1 = tf_util.conv2d(edge_feature, 64, [1,1],
                        padding='VALID', stride=[1,1],
-                       bn=True, is_training=is_training, weight_decay=weight_decay,
-                       scope='adj_conv1', bn_decay=bn_decay, is_dist=True)
+                       bn=True, is_training=is_training,
+                       weight_decay=weight_decay,
+                       scope='adj_conv1', 
+                       bn_decay=bn_decay,
+                       is_dist=True)
   
   out2 = tf_util.conv2d(out1, 64, [1,1],
                        padding='VALID', stride=[1,1],
-                       bn=True, is_training=is_training, weight_decay=weight_decay,
-                       scope='adj_conv2', bn_decay=bn_decay, is_dist=True)
+                       bn=True, is_training=is_training, 
+                       weight_decay=weight_decay,
+                       scope='adj_conv2',
+                       bn_decay=bn_decay, is_dist=True)
 
   net_1 = tf.reduce_max(out2, axis=-2, keep_dims=True)
 
@@ -134,7 +139,7 @@ def get_permutation_invariant_loss(pred_labels, true_labels):
   # pred_labels: batch_size x point_num x part_num
   # true_labels: batch_size x point_num
 
-  sess = tf.InteractiveSession()
+  sess = tf.Session()
 
   min_parts = tf.reduce_min(true_labels, axis=1, keepdims=True)
   true_labels = true_labels - min_parts # batch_size x point_num
@@ -148,6 +153,7 @@ def get_permutation_invariant_loss(pred_labels, true_labels):
   for i in range(batch_num):
     perm_base = sess.run(part_counts[i])
     perm_count = math.factorial(perm_base)
+  
     pred_l = tf.repeat(tf.expand_dims(pred_labels[i], axis=0), repeats=perm_count, axis=0)  # perm_num x point_num x part_num
     true_l = np.zeros([perm_count, point_num])            
     part_index_permutations = np.array([list(perm) for perm in permutations(range(perm_base))])
@@ -169,7 +175,7 @@ def get_permutation_invariant_loss(pred_labels, true_labels):
 
   seg_loss = tf.reduce_mean(per_instance_seg_loss)
   #per_instance_seg_pred_res = tf.argmax(pred_labels, 2)
-  
+
   return seg_loss, permuted_labels
 
 # Test loss functions

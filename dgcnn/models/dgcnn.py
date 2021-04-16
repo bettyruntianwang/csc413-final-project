@@ -12,8 +12,8 @@ from transform_nets import input_transform_net
 
 
 def placeholder_inputs(batch_size, num_point):
-  pointclouds_pl = tf.placeholder(tf.float32, shape=(batch_size, num_point, 3))
-  labels_pl = tf.placeholder(tf.int32, shape=(batch_size))
+  pointclouds_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, 3))
+  labels_pl = tf.compat.v1.placeholder(tf.int32, shape=(batch_size))
   return pointclouds_pl, labels_pl
 
 
@@ -28,7 +28,7 @@ def get_model(point_cloud, is_training, bn_decay=None):
   nn_idx = tf_util.knn(adj_matrix, k=k)
   edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
 
-  with tf.variable_scope('transform_net1') as sc:
+  with tf.compat.v1.variable_scope('transform_net1') as sc:
     transform = input_transform_net(edge_feature, is_training, bn_decay, K=3)
 
   point_cloud_transformed = tf.matmul(point_cloud, transform)
