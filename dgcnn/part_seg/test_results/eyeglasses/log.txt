@@ -1,0 +1,65 @@
+Model restored.
+102611.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.082520
+
+101842.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+101326.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+101284.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+101287.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+101844.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.024414
+
+101866.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.236328
+
+102599.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+101328.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+Accuracy: 0.038140

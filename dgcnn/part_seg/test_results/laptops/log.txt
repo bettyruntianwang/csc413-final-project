@@ -1,0 +1,128 @@
+Model restored.
+10238.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.023926
+
+10915.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.067383
+
+10211.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000488
+
+9912.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.029297
+
+10101.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+10239.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.288574
+
+10248.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.139648
+
+10098.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.114746
+
+9960.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.098145
+
+9968.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.005859
+
+9992.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000000
+
+11242.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.003418
+
+10040.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.155273
+
+10243.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.229004
+
+9748.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.074219
+
+10306.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.000977
+
+11141.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.143066
+
+10213.h5:
+
+Total Point: 2048
+
+
+Accuracy: 0.067871
+
+Accuracy: 0.080105
