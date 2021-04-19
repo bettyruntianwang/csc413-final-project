@@ -16,15 +16,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from model import PointNet, DGCNN
+from torch_model import PointNet, DGCNN
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
-from util import cal_seg_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
+from util import cross_entropy_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
 import sklearn.metrics as metrics
 import math
 import h5py
 from matplotlib import pyplot as plt
-import yaml
+#import yaml
 import sys
 import time
 BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)))
@@ -36,16 +36,16 @@ from visualization.visualize import plot3d_pts_in_camera_plane, plot3d_pts
 VALIDATION_PERCENTAGE = 0.2
 
 def _init_():
-    if not os.path.exists('checkpoints'):
-        os.makedirs('checkpoints')
-    if not os.path.exists('checkpoints/'+args.exp_name):
-        os.makedirs('checkpoints/'+args.exp_name)
-    if not os.path.exists('checkpoints/'+args.exp_name+'/'+'models'):
-        os.makedirs('checkpoints/'+args.exp_name+'/'+'models')
-    os.system('cp main.py checkpoints'+'/'+args.exp_name+'/'+'main.py.backup')
-    os.system('cp model.py checkpoints' + '/' + args.exp_name + '/' + 'model.py.backup')
-    os.system('cp util.py checkpoints' + '/' + args.exp_name + '/' + 'util.py.backup')
-    os.system('cp data.py checkpoints' + '/' + args.exp_name + '/' + 'data.py.backup')
+    if not os.path.exists('checkpoints_perm_loss_their_data'):
+        os.makedirs('checkpoints_perm_loss_their_data')
+    if not os.path.exists('checkpoints_perm_loss_their_data/'+args.exp_name):
+        os.makedirs('checkpoints_perm_loss_their_data/'+args.exp_name)
+    if not os.path.exists('checkpoints_perm_loss_their_data/'+args.exp_name+'/'+'models'):
+        os.makedirs('checkpoints_perm_loss_their_data/'+args.exp_name+'/'+'models')
+    os.system('cp main.py checkpoints_perm_loss_their_data'+'/'+args.exp_name+'/'+'main.py.backup')
+    os.system('cp model.py checkpoints_perm_loss_their_data' + '/' + args.exp_name + '/' + 'model.py.backup')
+    os.system('cp util.py checkpoints_perm_loss_their_data' + '/' + args.exp_name + '/' + 'util.py.backup')
+    os.system('cp data.py checkpoints_perm_loss_their_data' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 # Tianxu: return data and seg
 def load_h5_data_their_data(h5_dir, file_num, num_points=2048):
@@ -67,9 +67,8 @@ def load_h5_data_their_data(h5_dir, file_num, num_points=2048):
 
     idx = np.arange(label.shape[0])
     np.random.shuffle(idx)
-    data = data[idx, :][:num_points, :]
-    label = label[idx][:num_points]
-
+    data = data[idx, :][:, :num_points, :]
+    label = label[idx, :][:, :num_points]
     return data, label
 
 def get_data_indices(data_size, batch_size=1, val_percentage=VALIDATION_PERCENTAGE):
@@ -84,25 +83,25 @@ def get_data_indices(data_size, batch_size=1, val_percentage=VALIDATION_PERCENTA
 def get_data_loaders(dataset, batch_size=1, val_percentage=VALIDATION_PERCENTAGE):
     # Load training and validation data.  
     data_size = len(dataset)
-
     if val_percentage == 1:
         # used in testing stage
         test_loader = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(0, data_size)), drop_last=True)
         return 0, test_loader
 
     end_training_index = get_data_indices(data_size, batch_size, val_percentage)
+    # train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index)), drop_last=True)
+    # test_loader  = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index+1, data_size)), drop_last=True)
 
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index)), drop_last=True)
-    test_loader  = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index+1, data_size)), drop_last=True)
+    train_loader = DataLoader(dataset, batch_size=batch_size)
+    test_loader  = DataLoader(dataset, batch_size=batch_size)
 
     return train_loader, test_loader
 
 def train(args, io):
-    #data_dir = os.path.join(BASE_DIR, '..', 'dataset', 'hdf5-their-data')
-    data_dir = '/home/tianxu/Desktop/pair-group/Thesis-project/dgcnn/dgcnn/tensorflow/part_seg/hdf5_data'
+    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data_pytorch')
+    #data_dir = '/home/tianxu/Desktop/pair-group/Thesis-project/dgcnn/dgcnn/tensorflow/part_seg/hdf5_data'
 
     data, label = load_h5_data_their_data(data_dir, 5, args.num_points)
-
     dataset = TensorDataset(data, label)
 
     train_loader, test_loader = get_data_loaders(dataset, args.batch_size)
@@ -118,7 +117,7 @@ def train(args, io):
     if args.model == 'pointnet':
         model = PointNet(args).to(device)
     elif args.model == 'dgcnn':
-        model = DGCNN(args, part_number=6).to(device)
+        model = DGCNN(args, input_dim=3, part_num=6, num_points=args.num_points, batch_size=args.batch_size).to(device)
     else:
         raise Exception("Not implemented")
     print(str(model))
@@ -145,7 +144,7 @@ def train(args, io):
 
     scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=args.lr)
     
-    criterion = cal_min_pairwise_seg_loss
+    criterion = cal_min_pairwise_seg_loss # cross_entropy_loss
 
     train_loss_list = []
     train_acc_list = []
@@ -159,7 +158,7 @@ def train(args, io):
     min_loss_epoch = 0
 
     starting_epoch = 0
-    training_backup_filepath = F'checkpoints/{args.exp_name}/models/training_backup.txt'
+    training_backup_filepath = F'checkpoints_perm_loss_their_data/{args.exp_name}/models/training_backup.txt'
     if os.path.exists(training_backup_filepath):
         try:
             with open(training_backup_filepath, 'r') as f:
@@ -192,8 +191,9 @@ def train(args, io):
             opt.zero_grad()
             logits = model(data.permute(0, 2, 1))
 
+            # TODO: update for cross entropy
             loss, permuted_labels = criterion(logits, label)
-            min_loss = cal_seg_loss(logits, permuted_labels)
+            min_loss = cross_entropy_loss(logits, permuted_labels)
             min_loss.backward()
 
             opt.step()
@@ -230,7 +230,7 @@ def train(args, io):
             data, label = data.to(device), label.to(device)
 
             batch_size = data.shape[0]
-            logits = model(data)
+            logits = model(data.permute(0, 2, 1))
             
             loss, permuted_labels = criterion(logits, label)
             preds = logits.max(dim=2)[1]
@@ -249,7 +249,7 @@ def train(args, io):
         if test_acc > max_test_acc:
             max_test_acc = test_acc
             max_acc_epoch = epoch
-            torch.save(model.state_dict(), 'checkpoints/%s/models/model.h5' % args.exp_name)
+            torch.save(model.state_dict(), 'checkpoints_perm_loss_their_data/%s/models/model.h5' % args.exp_name)
         if test_loss < min_test_loss:
             min_test_loss = test_loss
             min_loss_epoch = epoch
@@ -288,7 +288,7 @@ def train(args, io):
     acc_ax.legend([F'train', \
                 F'test'], loc='upper right')
     #plt.show()
-    fig.savefig('./log/model_loss_acc.png')
+    fig.savefig('./log_perm_loss_their_data/model_loss_acc.png')
 
 def test(args, io):
     data_dir = os.path.join(BASE_DIR, '..', 'dataset', 'hdf5-Sapien', 'cabinets')
@@ -400,11 +400,11 @@ if __name__ == "__main__":
                         help='Model to use, [pointnet, dgcnn]')
     parser.add_argument('--dataset', type=str, default='modelnet40', metavar='N',
                         choices=['modelnet40'])
-    parser.add_argument('--batch_size', type=int, default=128, metavar='batch_size',
+    parser.add_argument('--batch_size', type=int, default=16, metavar='batch_size',
                         help='Size of batch)')
     parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size',
                         help='Size of batch)')
-    parser.add_argument('--epochs', type=int, default=250, metavar='N',
+    parser.add_argument('--epochs', type=int, default=20, metavar='N',
                         help='number of episode to train ')
     parser.add_argument('--use_sgd', type=bool, default=True,
                         help='Use SGD')
@@ -418,7 +418,7 @@ if __name__ == "__main__":
                         help='random seed (default: 1)')
     parser.add_argument('--eval', type=bool,  default=False,
                         help='evaluate the model')
-    parser.add_argument('--num_points', type=int, default=30,#3072!!!!!!!!!!!!!!! or 2048
+    parser.add_argument('--num_points', type=int, default=2048,#3072!!!!!!!!!!!!!!! or 2048
                         help='num of points to use')
     parser.add_argument('--dropout', type=float, default=0.5,
                         help='dropout rate')
@@ -428,15 +428,18 @@ if __name__ == "__main__":
                         help='Num of nearest neighbors to use')
     parser.add_argument('--model_path', type=str, default='', metavar='N',
                         help='Pretrained model path')
+    parser.add_argument('--bn_decay', type=float, default=0.1,
+                        help='momentum for batch normalization')
+
     args = parser.parse_args()
 
     _init_()
 
-    io = IOStream('checkpoints/' + args.exp_name + '/run.log')
+    io = IOStream('checkpoints_perm_loss_their_data/' + args.exp_name + '/run.log')
     io.cprint(str(args))
 
     args.use_cuda = not args.no_cuda and torch.cuda.is_available()
-    args.model_path = os.path.join('checkpoints', args.exp_name, 'models', 'model.h5')
+    args.model_path = os.path.join('checkpoints_perm_loss_their_data', args.exp_name, 'models', 'model.h5')
     
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -450,8 +453,8 @@ if __name__ == "__main__":
 
     args.eval = False
     if not args.eval:
-        if not os.path.exists('./log'):
-            os.mkdir('./log')
+        if not os.path.exists('./log_perm_loss_their_data'):
+            os.mkdir('./log_perm_loss_their_data')
         train(args, io)
     else:
         test(args, io)

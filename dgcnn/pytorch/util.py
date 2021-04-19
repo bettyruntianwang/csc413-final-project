@@ -33,7 +33,9 @@ def cal_loss(pred, gold, smoothing=True):
 
     return loss
 
-def cal_seg_loss(pred_labels, true_labels):
+def cross_entropy_loss(pred_labels, true_labels):
+    # pred labels: batch size x num pts x pt num
+    # true labels: batch size x num pts
     pred_labels = pred_labels.view(pred_labels.shape[0]*pred_labels.shape[1], -1)
     true_labels = true_labels.view(-1)
     per_instance_seg_loss = F.cross_entropy(input=pred_labels, target=true_labels)

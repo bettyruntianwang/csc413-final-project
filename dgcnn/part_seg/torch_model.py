@@ -154,11 +154,12 @@ class DGCNN(nn.Module):
         self.bn_decay = args.bn_decay
 
         #TODO: batchnorm decay and weight decay
-        self.bn1 = nn.BatchNorm2d(64)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.bn3 = nn.BatchNorm2d(256)
-        self.bn4 = nn.BatchNorm2d(512)
-        self.bn5 = nn.BatchNorm2d(1024)
+        # momentum default = 0.1
+        self.bn1 = nn.BatchNorm2d(64, momentum=self.bn_decay, eps=1e-3)
+        self.bn2 = nn.BatchNorm2d(128, momentum=self.bn_decay, eps=1e-3)
+        self.bn3 = nn.BatchNorm2d(256, momentum=self.bn_decay, eps=1e-3)
+        self.bn4 = nn.BatchNorm2d(512, momentum=self.bn_decay, eps=1e-3)
+        self.bn5 = nn.BatchNorm2d(1024, momentum=self.bn_decay, eps=1e-3)
 
         self.transform_conv1 = nn.Sequential(nn.Conv2d(input_dim, 64, kernel_size=1, bias=True),
                                    self.bn1,

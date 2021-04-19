@@ -16,10 +16,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from model import PointNet, DGCNN
+from torch_model import PointNet, DGCNN
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
-from util import cal_seg_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
+from util import cross_entropy_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
 import sklearn.metrics as metrics
 import math
 import h5py
@@ -449,6 +449,9 @@ if __name__ == "__main__":
                         help='Num of nearest neighbors to use')
     parser.add_argument('--model_path', type=str, default='', metavar='N',
                         help='Pretrained model path')
+    parser.add_argument('--bn_decay', type=float, default=0.1,
+                        help='momentum for batch normalization')
+
     args = parser.parse_args()
 
     _init_()

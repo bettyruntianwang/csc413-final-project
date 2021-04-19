@@ -43,6 +43,8 @@ def _variable_with_weight_decay(name, shape, stddev, wd, use_xavier=True):
   if use_xavier:
     initializer = tf.contrib.layers.xavier_initializer()
   else:
+    # Like a random normal initializar, but values that are than 2 sd from the mean are discarded
+    # and redrawn
     initializer = tf.truncated_normal_initializer(stddev=stddev)
   var = _variable_on_cpu(name, shape, initializer)
   if wd is not None:

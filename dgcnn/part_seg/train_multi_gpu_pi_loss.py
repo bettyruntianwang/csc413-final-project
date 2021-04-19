@@ -222,7 +222,6 @@ def train():
 
             tower_grads.append(grads)
 
-    #Betty: tower_grads is empty
     grads = average_gradients(tower_grads)
 
     train_op = trainer.apply_gradients(grads, global_step=batch)
