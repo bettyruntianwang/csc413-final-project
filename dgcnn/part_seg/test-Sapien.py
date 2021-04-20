@@ -148,7 +148,7 @@ def load_h5_data(h5_file_path, num_points):
             idx = np.arange(len(label[-1]))
             np.random.shuffle(idx)
             data[-1] = data[-1][idx, :][:num_points, :]
-            label[-1] = label[-1][idx][:num_points]
+            label[-1] = label[-1][idx][:num_points] + 28  # Test laptops only, hard-coded!!
 
             #plot3d_pts([part_list], pts_name=[[f'part {i}' for i in range(part_counts[-1])]], title_name=F'Ground Truth Point Cloud Step {step_id}, camera {cam_index}',
             #                    show_fig=True, save_fig=False,
