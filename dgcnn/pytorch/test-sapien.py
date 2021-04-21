@@ -131,16 +131,16 @@ def get_data_loaders(dataset, batch_size=1, val_percentage=VALIDATION_PERCENTAGE
     return train_loader, test_loader
 
 def test(args, io):
-    category = 'buckets-cam'
+    category = 'laptops-similar-frame'
     perm_loss = True
-    data_dir = os.path.join(BASE_DIR, '..', 'dataset', 'hdf5-Sapien', category)
+    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'Sapien_part_seg', category)
     total_objects = os.listdir(data_dir)
     np.random.shuffle(total_objects)
 
     object_ids, data, label, step_counts, part_counts = load_h5_data_seg_Sapien(data_dir, total_objects, args.num_points)
 
     for i, object_id in enumerate(object_ids):
-        yml_load_path = os.path.join(BASE_DIR, '..', 'dataset', 'render-Sapien', category, str(object_id), 'pose-transformation.yml')                                                     
+        yml_load_path = os.path.join(BASE_DIR, '..', 'part_seg', 'Sapien_part_seg', F'{category}-render', str(object_id), 'pose-transformation.yml')                                                     
         with open(yml_load_path, 'r') as f:
             yaml_dict = yaml.load(f)
         proj_matrix = np.array(yaml_dict['projMat']).reshape(4, 4).T
