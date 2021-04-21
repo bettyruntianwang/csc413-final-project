@@ -98,7 +98,7 @@ def get_data_loaders(dataset, batch_size=1, val_percentage=VALIDATION_PERCENTAGE
     return train_loader, test_loader
 
 def train(args, io):
-    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data_pytorch')
+    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data')
     #data_dir = '/home/tianxu/Desktop/pair-group/Thesis-project/dgcnn/dgcnn/tensorflow/part_seg/hdf5_data'
 
     data, label = load_h5_data_their_data(data_dir, 5, args.num_points)
