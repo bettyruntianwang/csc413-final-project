@@ -8,7 +8,7 @@ import h5py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.dirname(BASE_DIR))
-import provider
+#import provider
 import part_seg_model as model
 
 parser = argparse.ArgumentParser()
@@ -20,12 +20,13 @@ pretrained_model_path = FLAGS.model_path
 hdf5_data_dir = os.path.join(BASE_DIR, './hdf5_data')
 ply_data_dir = os.path.join(BASE_DIR, './PartAnnotation')
 gpu_to_use = 0
-output_dir = os.path.join(BASE_DIR, './test_results')
-output_verbose = True
 
 # New Data directory (CSC413)
-category = 'eyeglasses'
+category = 'laptops'
 sapien_h5_dir = os.path.join(BASE_DIR, './Sapien_part_seg', category)
+
+output_dir = os.path.join(BASE_DIR, './test_results', category)
+output_verbose = True
 
 # MAIN SCRIPT
 point_num = 2048 #3000
