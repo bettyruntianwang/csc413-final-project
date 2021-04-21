@@ -24,7 +24,7 @@ import sklearn.metrics as metrics
 import math
 import h5py
 from matplotlib import pyplot as plt
-import yaml
+#import yaml
 import sys
 import time
 BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)))
@@ -36,61 +36,40 @@ from visualization.visualize import plot3d_pts_in_camera_plane, plot3d_pts
 VALIDATION_PERCENTAGE = 0.2
 
 def _init_():
-    if not os.path.exists('checkpoints'):
-        os.makedirs('checkpoints')
-    if not os.path.exists('checkpoints/'+args.exp_name):
-        os.makedirs('checkpoints/'+args.exp_name)
-    if not os.path.exists('checkpoints/'+args.exp_name+'/'+'models'):
-        os.makedirs('checkpoints/'+args.exp_name+'/'+'models')
-    os.system('cp main.py checkpoints'+'/'+args.exp_name+'/'+'main.py.backup')
-    os.system('cp model.py checkpoints' + '/' + args.exp_name + '/' + 'model.py.backup')
-    os.system('cp util.py checkpoints' + '/' + args.exp_name + '/' + 'util.py.backup')
-    os.system('cp data.py checkpoints' + '/' + args.exp_name + '/' + 'data.py.backup')
+    if not os.path.exists('checkpoints_ce_loss_their_data_50parts'):
+        os.makedirs('checkpoints_ce_loss_their_data_50parts')
+    if not os.path.exists('checkpoints_ce_loss_their_data_50parts/'+args.exp_name):
+        os.makedirs('checkpoints_ce_loss_their_data_50parts/'+args.exp_name)
+    if not os.path.exists('checkpoints_ce_loss_their_data_50parts/'+args.exp_name+'/'+'models'):
+        os.makedirs('checkpoints_ce_loss_their_data_50parts/'+args.exp_name+'/'+'models')
+    os.system('cp main.py checkpoints_ce_loss_their_data_50parts'+'/'+args.exp_name+'/'+'main.py.backup')
+    os.system('cp model.py checkpoints_ce_loss_their_data_50parts' + '/' + args.exp_name + '/' + 'model.py.backup')
+    os.system('cp util.py checkpoints_ce_loss_their_data_50parts' + '/' + args.exp_name + '/' + 'util.py.backup')
+    os.system('cp data.py checkpoints_ce_loss_their_data_50parts' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 # Tianxu: return data and seg
-def load_h5_data_seg_Sapien(h5_dir, file_names, num_points=2048):
+def load_h5_data_their_data(h5_dir, file_num, num_points=2048):
     data = []
     label = []
-    step_counts = []
-    part_counts = []
 
-    for filename in file_names:
-        f = h5py.File(os.path.join(h5_dir, filename))
-        root = f['gt_points']
+    for fileid in range(file_num):
+        f = h5py.File(os.path.join(h5_dir, F'ply_data_train{fileid}.h5'))
+        
+        data.append(f['data'][:]) # (2048, 2048, 3)
+        label.append(f['pid'][:]) # (2048, 2048)
+        
+    data = torch.tensor(data, dtype=torch.float).reshape(5*2048, 2048, 3)   #number hard-coded!
+    label = torch.tensor(label, dtype=torch.long).reshape(5*2048, 2048)     # number hard-coded!
 
-        for cam_index in range(len(root)):
-            cam_name = F'cam {cam_index}'
-            cam = root[cam_name]
+    # # make labels in each object starting from 0
+    # min_parts = torch.min(label, axis=1, keepdim=True)[0]
+    # label = label - min_parts
 
-            for step_id in range(len(cam)):
-                step_name = F'cam {cam_index} step {step_id}'
-                step = cam[step_name]
-
-                data.append([])
-                label.append([])
-
-                for part_index in range(len(step)):
-                    part_name = F'part {part_index}'
-                    part = step[part_name][:]
-                    if part.shape[0] == 0:
-                        # no point in this part, skip
-                        continue
-                    if len(data[-1]) == 0:
-                        data[-1] = part
-                        label[-1] = np.array([part_index] * len(part))
-                    else:
-                        data[-1] = np.concatenate([data[-1], part], axis=0)
-                        label[-1] = np.concatenate([label[-1], np.ones([len(part)]) * part_index], axis=0)
-
-                idx = np.arange(len(label[-1]))
-                np.random.shuffle(idx)
-                data[-1] = data[-1][idx, :][:num_points, :]
-                label[-1] = label[-1][idx][:num_points]
-                part_counts.append(len(cam[step_name]))
-                step_counts.append(len(cam))
-
-    return (torch.tensor(data, dtype=torch.float), torch.tensor(label, dtype=torch.long), 
-            torch.tensor(step_counts, dtype=torch.long), torch.tensor(part_counts, dtype=torch.long))
+    idx = np.arange(label.shape[0])
+    np.random.shuffle(idx)
+    data = data[idx, :][:, :num_points, :]
+    label = label[idx, :][:, :num_points]
+    return data, label
 
 def get_data_indices(data_size, batch_size=1, val_percentage=VALIDATION_PERCENTAGE):
     total_batch_num = int(data_size / batch_size)
@@ -104,27 +83,26 @@ def get_data_indices(data_size, batch_size=1, val_percentage=VALIDATION_PERCENTA
 def get_data_loaders(dataset, batch_size=1, val_percentage=VALIDATION_PERCENTAGE):
     # Load training and validation data.  
     data_size = len(dataset)
-
     if val_percentage == 1:
         # used in testing stage
         test_loader = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(0, data_size)), drop_last=True)
         return 0, test_loader
 
     end_training_index = get_data_indices(data_size, batch_size, val_percentage)
+    # train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index)), drop_last=True)
+    # test_loader  = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index+1, data_size)), drop_last=True)
 
-    train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index)), drop_last=True)
-    test_loader  = DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(range(end_training_index+1, data_size)), drop_last=True)
+    train_loader = DataLoader(dataset, batch_size=batch_size)
+    test_loader  = DataLoader(dataset, batch_size=batch_size)
 
     return train_loader, test_loader
 
 def train(args, io):
-    data_dir = os.path.join(BASE_DIR, '..', 'dataset', 'hdf5')
-    total_objects = os.listdir(data_dir)
-    np.random.shuffle(total_objects)
+    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data')
+    #data_dir = '/home/tianxu/Desktop/pair-group/Thesis-project/dgcnn/dgcnn/tensorflow/part_seg/hdf5_data'
 
-    data, label, step_counts, part_counts = load_h5_data_seg_Sapien(data_dir, total_objects, args.num_points)
-
-    dataset = TensorDataset(data, label, step_counts, part_counts)
+    data, label = load_h5_data_their_data(data_dir, 5, args.num_points)
+    dataset = TensorDataset(data, label)
 
     train_loader, test_loader = get_data_loaders(dataset, args.batch_size)
 
@@ -139,7 +117,7 @@ def train(args, io):
     if args.model == 'pointnet':
         model = PointNet(args).to(device)
     elif args.model == 'dgcnn':
-        model = DGCNN(args, part_number=6).to(device)
+        model = DGCNN(args, input_dim=3, part_num=50, num_points=args.num_points, batch_size=args.batch_size).to(device)
     else:
         raise Exception("Not implemented")
     print(str(model))
@@ -166,7 +144,7 @@ def train(args, io):
 
     scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=args.lr)
     
-    criterion = cal_min_pairwise_seg_loss
+    #criterion = cal_min_pairwise_seg_loss # cross_entropy_loss
 
     train_loss_list = []
     train_acc_list = []
@@ -180,7 +158,7 @@ def train(args, io):
     min_loss_epoch = 0
 
     starting_epoch = 0
-    training_backup_filepath = F'checkpoints/{args.exp_name}/models/training_backup.txt'
+    training_backup_filepath = F'checkpoints_ce_loss_their_data_50parts/{args.exp_name}/models/training_backup.txt'
     if os.path.exists(training_backup_filepath):
         try:
             with open(training_backup_filepath, 'r') as f:
@@ -204,7 +182,7 @@ def train(args, io):
         train_pred = []
         train_true = []
         start_time = time.time()
-        for data, label, step_counts, part_counts in train_loader:
+        for data, label in train_loader:
             data, label = data.to(device), label.to(device)
             # data: batch_size x point_num x 3
             # label: batch_size x point_num
@@ -213,15 +191,16 @@ def train(args, io):
             opt.zero_grad()
             logits = model(data.permute(0, 2, 1))
 
-            loss, permuted_labels = criterion(logits, label)
-            min_loss = cal_seg_loss(logits, permuted_labels)
+            # TODO: update for cross entropy
+            #loss, permuted_labels = criterion(logits, label)
+            min_loss = cross_entropy_loss(logits, label)
             min_loss.backward()
 
             opt.step()
             preds = logits.max(dim=2)[1]
             count += batch_size
-            train_loss += loss.item() * batch_size
-            train_true.append(permuted_labels.cpu().view(-1).numpy())
+            train_loss += min_loss.item() * batch_size
+            train_true.append(label.cpu().view(-1).numpy())
             train_pred.append(preds.detach().view(-1).cpu().numpy())
         train_true = np.concatenate(train_true)
         train_pred = np.concatenate(train_pred)
@@ -247,17 +226,17 @@ def train(args, io):
         model.eval()
         test_pred = []
         test_true = []
-        for data, label, step_counts, part_counts in test_loader:
+        for data, label in test_loader:
             data, label = data.to(device), label.to(device)
 
             batch_size = data.shape[0]
-            logits = model(data)
+            logits = model(data.permute(0, 2, 1))
             
-            loss, permuted_labels = criterion(logits, label)
+            loss = cross_entropy_loss(logits, label)
             preds = logits.max(dim=2)[1]
             count += batch_size
             test_loss += loss.item() * batch_size
-            test_true.append(permuted_labels.cpu().view(-1).numpy())
+            test_true.append(label.cpu().view(-1).numpy())
             test_pred.append(preds.detach().cpu().view(-1).numpy())
         test_true = np.concatenate(test_true)
         test_pred = np.concatenate(test_pred)
@@ -270,7 +249,7 @@ def train(args, io):
         if test_acc > max_test_acc:
             max_test_acc = test_acc
             max_acc_epoch = epoch
-            torch.save(model.state_dict(), 'checkpoints/%s/models/model.h5' % args.exp_name)
+            torch.save(model.state_dict(), 'checkpoints_ce_loss_their_data_50parts/%s/models/model.h5' % args.exp_name)
         if test_loss < min_test_loss:
             min_test_loss = test_loss
             min_loss_epoch = epoch
@@ -309,7 +288,7 @@ def train(args, io):
     acc_ax.legend([F'train', \
                 F'test'], loc='upper right')
     #plt.show()
-    fig.savefig('./log/model_loss_acc.png')
+    fig.savefig('./log_ce_loss_their_data-50parts/model_loss_acc.png')
 
 def test(args, io):
     data_dir = os.path.join(BASE_DIR, '..', 'dataset', 'hdf5-Sapien', 'cabinets')
@@ -317,20 +296,20 @@ def test(args, io):
     np.random.shuffle(total_objects)
 
     #object_ids, step_ids, data, label, step_counts, part_counts = load_(data_dir, os.listdir(data_dir), args.num_points)
-    data, label, step_counts, part_counts = load_h5_data_seg_Sapien(data_dir, os.listdir(data_dir), args.num_points)
+    data, label = load_h5_data_their_data(data_dir, os.listdir(data_dir), args.num_points)
 
-    for i, object_id in enumerate(object_ids):
-        object_id = object_id.item()
-        yml_load_path = os.path.join(BASE_DIR, '..', 'dataset', 'render-Sapien', 'cabinets', str(object_id), 'pose-transformation.yml')                                                     
-        with open(yml_load_path, 'r') as f:
-            yaml_dict = yaml.load(f)
-        proj_matrix = np.array(yaml_dict['projMat']).reshape(4, 4)
-        #view_matrix = np.array(yaml_dict['view_matrix_cam_1']).reshape(4, 4)
-        #world_to_image_matrix = np.dot(view_matrix, proj_matrix)
-        #pass_once(args, data[i], object_id=object_id, step_id=step_ids[i], project_to_plane=True, transform_matrix=proj_matrix)
-        pass_once(args, data[i], object_id=object_id, step_count=step_counts[i], project_to_plane=True, transform_matrix=proj_matrix)
+    # for i, object_id in enumerate(object_ids):
+    #     object_id = object_id.item()
+    #     yml_load_path = os.path.join(BASE_DIR, '..', 'dataset', 'render-Sapien', 'cabinets', str(object_id), 'pose-transformation.yml')                                                     
+    #     with open(yml_load_path, 'r') as f:
+    #         yaml_dict = yaml.load(f)
+    #     proj_matrix = np.array(yaml_dict['projMat']).reshape(4, 4)
+    #     #view_matrix = np.array(yaml_dict['view_matrix_cam_1']).reshape(4, 4)
+    #     #world_to_image_matrix = np.dot(view_matrix, proj_matrix)
+    #     #pass_once(args, data[i], object_id=object_id, step_id=step_ids[i], project_to_plane=True, transform_matrix=proj_matrix)
+    #     pass_once(args, data[i], object_id=object_id, step_count=step_counts[i], project_to_plane=True, transform_matrix=proj_matrix)
 
-    dataset = TensorDataset(data, label, part_counts)
+    dataset = TensorDataset(data, label)
 
     _, test_loader = get_data_loaders(dataset, batch_size=args.batch_size, val_percentage=1)
 
@@ -421,11 +400,11 @@ if __name__ == "__main__":
                         help='Model to use, [pointnet, dgcnn]')
     parser.add_argument('--dataset', type=str, default='modelnet40', metavar='N',
                         choices=['modelnet40'])
-    parser.add_argument('--batch_size', type=int, default=128, metavar='batch_size',
+    parser.add_argument('--batch_size', type=int, default=16, metavar='batch_size',
                         help='Size of batch)')
     parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size',
                         help='Size of batch)')
-    parser.add_argument('--epochs', type=int, default=250, metavar='N',
+    parser.add_argument('--epochs', type=int, default=20, metavar='N',
                         help='number of episode to train ')
     parser.add_argument('--use_sgd', type=bool, default=True,
                         help='Use SGD')
@@ -439,7 +418,7 @@ if __name__ == "__main__":
                         help='random seed (default: 1)')
     parser.add_argument('--eval', type=bool,  default=False,
                         help='evaluate the model')
-    parser.add_argument('--num_points', type=int, default=30,#3072!!!!!!!!!!!!!!! or 2048
+    parser.add_argument('--num_points', type=int, default=2048,#3072!!!!!!!!!!!!!!! or 2048
                         help='num of points to use')
     parser.add_argument('--dropout', type=float, default=0.5,
                         help='dropout rate')
@@ -456,11 +435,11 @@ if __name__ == "__main__":
 
     _init_()
 
-    io = IOStream('checkpoints/' + args.exp_name + '/run.log')
+    io = IOStream('checkpoints_ce_loss_their_data_50parts/' + args.exp_name + '/run.log')
     io.cprint(str(args))
 
     args.use_cuda = not args.no_cuda and torch.cuda.is_available()
-    args.model_path = os.path.join('checkpoints', args.exp_name, 'models', 'model.h5')
+    args.model_path = os.path.join('checkpoints_ce_loss_their_data_50parts', args.exp_name, 'models', 'model.h5')
     
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -474,8 +453,8 @@ if __name__ == "__main__":
 
     args.eval = False
     if not args.eval:
-        if not os.path.exists('./log'):
-            os.mkdir('./log')
+        if not os.path.exists('./log_ce_loss_their_data-50parts'):
+            os.mkdir('./log_ce_loss_their_data-50parts')
         train(args, io)
     else:
         test(args, io)

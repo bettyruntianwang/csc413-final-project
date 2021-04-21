@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch_model import PointNet, DGCNN
+from simple_model import PointNet, DGCNN
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from util import cross_entropy_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
@@ -36,16 +36,16 @@ from visualization.visualize import plot3d_pts_in_camera_plane, plot3d_pts
 VALIDATION_PERCENTAGE = 0.2
 
 def _init_():
-    if not os.path.exists('checkpoints_ce_loss_their_data_50parts'):
-        os.makedirs('checkpoints_ce_loss_their_data_50parts')
-    if not os.path.exists('checkpoints_ce_loss_their_data_50parts/'+args.exp_name):
-        os.makedirs('checkpoints_ce_loss_their_data_50parts/'+args.exp_name)
-    if not os.path.exists('checkpoints_ce_loss_their_data_50parts/'+args.exp_name+'/'+'models'):
-        os.makedirs('checkpoints_ce_loss_their_data_50parts/'+args.exp_name+'/'+'models')
-    os.system('cp main.py checkpoints_ce_loss_their_data_50parts'+'/'+args.exp_name+'/'+'main.py.backup')
-    os.system('cp model.py checkpoints_ce_loss_their_data_50parts' + '/' + args.exp_name + '/' + 'model.py.backup')
-    os.system('cp util.py checkpoints_ce_loss_their_data_50parts' + '/' + args.exp_name + '/' + 'util.py.backup')
-    os.system('cp data.py checkpoints_ce_loss_their_data_50parts' + '/' + args.exp_name + '/' + 'data.py.backup')
+    if not os.path.exists('checkpoints_ce_loss_their_data'):
+        os.makedirs('checkpoints_ce_loss_their_data')
+    if not os.path.exists('checkpoints_ce_loss_their_data/'+args.exp_name):
+        os.makedirs('checkpoints_ce_loss_their_data/'+args.exp_name)
+    if not os.path.exists('checkpoints_ce_loss_their_data/'+args.exp_name+'/'+'models'):
+        os.makedirs('checkpoints_ce_loss_their_data/'+args.exp_name+'/'+'models')
+    os.system('cp main.py checkpoints_ce_loss_their_data'+'/'+args.exp_name+'/'+'main.py.backup')
+    os.system('cp model.py checkpoints_ce_loss_their_data' + '/' + args.exp_name + '/' + 'model.py.backup')
+    os.system('cp util.py checkpoints_ce_loss_their_data' + '/' + args.exp_name + '/' + 'util.py.backup')
+    os.system('cp data.py checkpoints_ce_loss_their_data' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 # Tianxu: return data and seg
 def load_h5_data_their_data(h5_dir, file_num, num_points=2048):
@@ -61,9 +61,9 @@ def load_h5_data_their_data(h5_dir, file_num, num_points=2048):
     data = torch.tensor(data, dtype=torch.float).reshape(5*2048, 2048, 3)   #number hard-coded!
     label = torch.tensor(label, dtype=torch.long).reshape(5*2048, 2048)     # number hard-coded!
 
-    # # make labels in each object starting from 0
-    # min_parts = torch.min(label, axis=1, keepdim=True)[0]
-    # label = label - min_parts
+    # make labels in each object starting from 0
+    min_parts = torch.min(label, axis=1, keepdim=True)[0]
+    label = label - min_parts
 
     idx = np.arange(label.shape[0])
     np.random.shuffle(idx)
@@ -98,7 +98,7 @@ def get_data_loaders(dataset, batch_size=1, val_percentage=VALIDATION_PERCENTAGE
     return train_loader, test_loader
 
 def train(args, io):
-    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data_pytorch')
+    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data')
     #data_dir = '/home/tianxu/Desktop/pair-group/Thesis-project/dgcnn/dgcnn/tensorflow/part_seg/hdf5_data'
 
     data, label = load_h5_data_their_data(data_dir, 5, args.num_points)
@@ -117,7 +117,7 @@ def train(args, io):
     if args.model == 'pointnet':
         model = PointNet(args).to(device)
     elif args.model == 'dgcnn':
-        model = DGCNN(args, input_dim=3, part_num=50, num_points=args.num_points, batch_size=args.batch_size).to(device)
+        model = DGCNN(args, part_number=6).to(device)
     else:
         raise Exception("Not implemented")
     print(str(model))
@@ -158,7 +158,7 @@ def train(args, io):
     min_loss_epoch = 0
 
     starting_epoch = 0
-    training_backup_filepath = F'checkpoints_ce_loss_their_data_50parts/{args.exp_name}/models/training_backup.txt'
+    training_backup_filepath = F'checkpoints_ce_loss_their_data/{args.exp_name}/models/training_backup.txt'
     if os.path.exists(training_backup_filepath):
         try:
             with open(training_backup_filepath, 'r') as f:
@@ -249,7 +249,7 @@ def train(args, io):
         if test_acc > max_test_acc:
             max_test_acc = test_acc
             max_acc_epoch = epoch
-            torch.save(model.state_dict(), 'checkpoints_ce_loss_their_data_50parts/%s/models/model.h5' % args.exp_name)
+            torch.save(model.state_dict(), 'checkpoints_ce_loss_their_data/%s/models/model.h5' % args.exp_name)
         if test_loss < min_test_loss:
             min_test_loss = test_loss
             min_loss_epoch = epoch
@@ -288,7 +288,7 @@ def train(args, io):
     acc_ax.legend([F'train', \
                 F'test'], loc='upper right')
     #plt.show()
-    fig.savefig('./log_ce_loss_their_data-50parts/model_loss_acc.png')
+    fig.savefig('./log_ce_loss_their_data/model_loss_acc.png')
 
 def test(args, io):
     data_dir = os.path.join(BASE_DIR, '..', 'dataset', 'hdf5-Sapien', 'cabinets')
@@ -435,11 +435,11 @@ if __name__ == "__main__":
 
     _init_()
 
-    io = IOStream('checkpoints_ce_loss_their_data_50parts/' + args.exp_name + '/run.log')
+    io = IOStream('checkpoints_ce_loss_their_data/' + args.exp_name + '/run.log')
     io.cprint(str(args))
 
     args.use_cuda = not args.no_cuda and torch.cuda.is_available()
-    args.model_path = os.path.join('checkpoints_ce_loss_their_data_50parts', args.exp_name, 'models', 'model.h5')
+    args.model_path = os.path.join('checkpoints_ce_loss_their_data', args.exp_name, 'models', 'model.h5')
     
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -453,8 +453,8 @@ if __name__ == "__main__":
 
     args.eval = False
     if not args.eval:
-        if not os.path.exists('./log_ce_loss_their_data-50parts'):
-            os.mkdir('./log_ce_loss_their_data-50parts')
+        if not os.path.exists('./log_ce_loss_their_data'):
+            os.mkdir('./log_ce_loss_their_data')
         train(args, io)
     else:
         test(args, io)

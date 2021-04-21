@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch_model import PointNet, DGCNN
+from simple_model import PointNet, DGCNN
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from util import cross_entropy_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
@@ -98,7 +98,7 @@ def get_data_loaders(dataset, batch_size=1, val_percentage=VALIDATION_PERCENTAGE
     return train_loader, test_loader
 
 def train(args, io):
-    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data_pytorch')
+    data_dir = os.path.join(BASE_DIR, '..', 'part_seg', 'hdf5_data')
     #data_dir = '/home/tianxu/Desktop/pair-group/Thesis-project/dgcnn/dgcnn/tensorflow/part_seg/hdf5_data'
 
     data, label = load_h5_data_their_data(data_dir, 5, args.num_points)
@@ -117,7 +117,7 @@ def train(args, io):
     if args.model == 'pointnet':
         model = PointNet(args).to(device)
     elif args.model == 'dgcnn':
-        model = DGCNN(args, input_dim=3, part_num=6, num_points=args.num_points, batch_size=args.batch_size).to(device)
+        model = DGCNN(args).to(device)
     else:
         raise Exception("Not implemented")
     print(str(model))
