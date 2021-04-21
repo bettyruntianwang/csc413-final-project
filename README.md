@@ -44,4 +44,8 @@ Go to dgcnn/pytorch and run:
 ```
 python3 main-perm-simple.py
 ```
+Use the --epochs command to change the number of epochs, for example 
 
+```
+python3 main-perm-simple.py --epochs 200
+```
