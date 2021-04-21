@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from model import PointNet, DGCNN
+from torch_model import PointNet, DGCNN
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from util import cal_seg_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
