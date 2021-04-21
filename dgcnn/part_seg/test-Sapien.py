@@ -22,7 +22,7 @@ ply_data_dir = os.path.join(BASE_DIR, './PartAnnotation')
 gpu_to_use = 0
 
 # New Data directory (CSC413)
-category = 'laptops'
+category = 'laptops-similar-frame'
 sapien_h5_dir = os.path.join(BASE_DIR, './Sapien_part_seg', category)
 
 output_dir = os.path.join(BASE_DIR, './test_results', category)
