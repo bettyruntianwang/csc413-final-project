@@ -8,7 +8,7 @@ import h5py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.dirname(BASE_DIR))
-import provider
+#import provider
 import part_seg_model as model
 
 parser = argparse.ArgumentParser()
@@ -20,12 +20,13 @@ pretrained_model_path = FLAGS.model_path
 hdf5_data_dir = os.path.join(BASE_DIR, './hdf5_data')
 ply_data_dir = os.path.join(BASE_DIR, './PartAnnotation')
 gpu_to_use = 0
-output_dir = os.path.join(BASE_DIR, './test_results')
-output_verbose = True
 
 # New Data directory (CSC413)
-category = 'eyeglasses'
+category = 'laptops'
 sapien_h5_dir = os.path.join(BASE_DIR, './Sapien_part_seg', category)
+
+output_dir = os.path.join(BASE_DIR, './test_results', category)
+output_verbose = True
 
 # MAIN SCRIPT
 point_num = 2048 #3000
@@ -148,7 +149,7 @@ def load_h5_data(h5_file_path, num_points):
             idx = np.arange(len(label[-1]))
             np.random.shuffle(idx)
             data[-1] = data[-1][idx, :][:num_points, :]
-            label[-1] = label[-1][idx][:num_points]
+            label[-1] = label[-1][idx][:num_points] + 28  # Test laptops only, hard-coded!!
 
             #plot3d_pts([part_list], pts_name=[[f'part {i}' for i in range(part_counts[-1])]], title_name=F'Ground Truth Point Cloud Step {step_id}, camera {cam_index}',
             #                    show_fig=True, save_fig=False,
