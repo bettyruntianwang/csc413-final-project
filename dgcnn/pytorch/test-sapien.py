@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch_model import PointNet, DGCNN
+from simple_model import PointNet, DGCNN
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from util import cal_seg_loss, IOStream, get_part_point_cloud_from_label, cal_min_pairwise_seg_loss
@@ -258,7 +258,7 @@ if __name__ == "__main__":
                         help='random seed (default: 1)')
     parser.add_argument('--eval', type=bool,  default=False,
                         help='evaluate the model')
-    parser.add_argument('--num_points', type=int, default=1024,#3072!!!!!!!!!!!!!!! or 2048
+    parser.add_argument('--num_points', type=int, default=2048,#3072!!!!!!!!!!!!!!! or 2048
                         help='num of points to use')
     parser.add_argument('--dropout', type=float, default=0.5,
                         help='dropout rate')
